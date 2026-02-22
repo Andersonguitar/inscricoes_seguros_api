@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inscrições Congresso</title>
+<title>Lista de Inscritos</title>
 
 <style>
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', sans-serif;
   background: #f4f6f9;
   margin: 0;
   padding: 20px;
@@ -17,55 +17,75 @@ body {
 
 .container {
   width: 100%;
-  max-width: 700px;
+  max-width: 750px;
 }
 
 h2 {
   text-align: center;
-  margin-bottom: 20px;
-  color: #222;
+  margin-bottom: 15px;
+}
+
+.info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.counter {
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-weight: bold;
 }
 
 input {
   padding: 12px;
   width: 100%;
   margin-bottom: 20px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  border-radius: 10px;
+  border: 1px solid #ddd;
   font-size: 16px;
 }
 
 .card {
-  background: white;
+  background: #ffffff;
   padding: 15px;
   border-radius: 12px;
   margin-bottom: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+  border-left: 6px solid transparent;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  transition: transform 0.2s ease;
 }
 
 .card:hover {
-  transform: scale(1.02);
+  transform: translateY(-2px);
+}
+
+.card.presente {
+  border-left: 6px solid #28a745;
+  background: #e9f9ef;
 }
 
 .nome {
   font-size: 18px;
   font-weight: bold;
-  color: #222;
 }
 
 .igreja,
 .telefone {
   font-size: 13px;
-  color: #666;
+  color: #555;
   margin-top: 4px;
 }
 
-.total {
-  text-align: center;
-  margin-bottom: 15px;
-  font-size: 14px;
-  color: #555;
+.status {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #28a745;
 }
 </style>
 </head>
@@ -74,37 +94,40 @@ input {
 
 <div class="container">
 
-  <h2>Lista de Inscritos</h2>
+<h2>Congresso Jovens em Avivamento</h2>
 
-  <div class="total" id="total"></div>
+<div class="info">
+  <div class="counter" id="total">Total: 0</div>
+  <div class="counter" id="presentes">Presentes: 0</div>
+</div>
 
-  <input type="text" id="pesquisa" placeholder="Pesquisar nome...">
+<input type="text" id="pesquisa" placeholder="Pesquisar nome...">
 
-  <div id="lista"></div>
+<div id="lista"></div>
 
 </div>
 
 <script>
 
+let presencas = JSON.parse(localStorage.getItem("presencas")) || {};
+
 async function carregar() {
+
   try {
 
     const response = await fetch("/api/dados");
     const data = await response.json();
-
     const rows = Array.isArray(data) ? data : (data.values || []);
 
     const lista = document.getElementById("lista");
-    const total = document.getElementById("total");
-
     lista.innerHTML = "";
 
     if (rows.length <= 1) {
-      total.textContent = "Nenhum inscrito encontrado.";
+      atualizarContadores(0);
       return;
     }
 
-    total.textContent = "Total de inscritos: " + (rows.length - 1);
+    const total = rows.length - 1;
 
     rows.slice(1).forEach(row => {
 
@@ -112,30 +135,53 @@ async function carregar() {
       const igreja = row[2] || "";
       const telefone = row[3] || "";
 
+      const id = telefone || nome;
+
       const div = document.createElement("div");
       div.className = "card";
+
+      if (presencas[id]) {
+        div.classList.add("presente");
+      }
 
       div.innerHTML = `
         <div class="nome">${nome}</div>
         <div class="igreja">${igreja}</div>
         <div class="telefone">${telefone}</div>
+        <div class="status">${presencas[id] ? "Presente ✔" : "Clique para marcar presença"}</div>
       `;
 
-      lista.appendChild(div);
+      div.addEventListener("click", () => {
 
+        presencas[id] = !presencas[id];
+
+        localStorage.setItem("presencas", JSON.stringify(presencas));
+
+        carregar();
+      });
+
+      lista.appendChild(div);
     });
 
+    atualizarContadores(total);
+
   } catch (erro) {
-    console.error("Erro ao carregar:", erro);
+    console.error("Erro:", erro);
   }
 }
 
-carregar();
+function atualizarContadores(total) {
 
-// Atualiza automaticamente a cada 60 segundos
-setInterval(carregar, 60000);
+  const presentes = Object.values(presencas).filter(v => v).length;
 
-// Pesquisa dinâmica
+  document.getElementById("total").textContent = "Total: " + total;
+  document.getElementById("presentes").textContent = "Presentes: " + presentes;
+}
+
+// Atualiza lista a cada 30 segundos (sem perder presença)
+setInterval(carregar, 30000);
+
+// Pesquisa
 document.getElementById("pesquisa").addEventListener("input", function() {
 
   const filtro = this.value.toLowerCase();
@@ -147,6 +193,8 @@ document.getElementById("pesquisa").addEventListener("input", function() {
   });
 
 });
+
+carregar();
 
 </script>
 
