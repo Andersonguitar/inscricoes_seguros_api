@@ -129,7 +129,16 @@ async function carregar() {
 
     const total = rows.length - 1;
 
-    rows.slice(1).forEach(row => {
+    // 🔥 ORDENAÇÃO ALFABÉTICA A → Z
+    const dadosOrdenados = rows
+      .slice(1)
+      .sort((a, b) => {
+        const nomeA = (a[1] || "").toLowerCase();
+        const nomeB = (b[1] || "").toLowerCase();
+        return nomeA.localeCompare(nomeB, 'pt-BR');
+      });
+
+    dadosOrdenados.forEach(row => {
 
       const nome = row[1] || "";
       const igreja = row[2] || "";
@@ -178,7 +187,7 @@ function atualizarContadores(total) {
   document.getElementById("presentes").textContent = "Presentes: " + presentes;
 }
 
-// Atualiza lista a cada 30 segundos (sem perder presença)
+// Atualiza lista a cada 30 segundos
 setInterval(carregar, 30000);
 
 // Pesquisa
