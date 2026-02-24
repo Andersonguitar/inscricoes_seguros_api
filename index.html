@@ -81,6 +81,32 @@ input {
   margin-top: 4px;
 }
 
+/* Lotes */
+
+.lote {
+  font-size: 13px;
+  margin-top: 6px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.lote1 {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.lote2 {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.lote3 {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
 .status {
   margin-top: 6px;
   font-size: 12px;
@@ -111,6 +137,35 @@ input {
 
 let presencas = JSON.parse(localStorage.getItem("presencas")) || {};
 
+function calcularLote(dataString) {
+
+  if (!dataString) return "";
+
+  const partes = dataString.split(" ");
+  const data = partes[0].split("/");
+
+  const dia = parseInt(data[0]);
+  const mes = parseInt(data[1]) - 1;
+  const ano = parseInt(data[2]);
+
+  const dataInscricao = new Date(ano, mes, dia);
+
+  const lote1Inicio = new Date(2026, 1, 22);
+  const lote1Fim = new Date(2026, 2, 11);
+
+  const lote2Inicio = new Date(2026, 2, 12);
+  const lote2Fim = new Date(2026, 2, 29);
+
+  const lote3Inicio = new Date(2026, 2, 30);
+  const lote3Fim = new Date(2026, 3, 18);
+
+  if (dataInscricao >= lote1Inicio && dataInscricao <= lote1Fim) return "🎟️ 1º LOTE";
+  if (dataInscricao >= lote2Inicio && dataInscricao <= lote2Fim) return "🎟️ 2º LOTE";
+  if (dataInscricao >= lote3Inicio && dataInscricao <= lote3Fim) return "🎟️ 3º LOTE";
+
+  return "";
+}
+
 async function carregar() {
 
   try {
@@ -129,7 +184,6 @@ async function carregar() {
 
     const total = rows.length - 1;
 
-    // 🔥 ORDENAÇÃO ALFABÉTICA A → Z
     const dadosOrdenados = rows
       .slice(1)
       .sort((a, b) => {
@@ -140,9 +194,17 @@ async function carregar() {
 
     dadosOrdenados.forEach(row => {
 
+      const dataInscricao = row[0] || "";
       const nome = row[1] || "";
       const igreja = row[2] || "";
       const telefone = row[3] || "";
+
+      const lote = calcularLote(dataInscricao);
+
+      let classeLote = "";
+      if (lote.includes("1º")) classeLote = "lote1";
+      if (lote.includes("2º")) classeLote = "lote2";
+      if (lote.includes("3º")) classeLote = "lote3";
 
       const id = telefone || nome;
 
@@ -157,15 +219,13 @@ async function carregar() {
         <div class="nome">${nome}</div>
         <div class="igreja">${igreja}</div>
         <div class="telefone">${telefone}</div>
+        <div class="lote ${classeLote}">${lote}</div>
         <div class="status">${presencas[id] ? "Presente ✔" : "Clique para marcar presença"}</div>
       `;
 
       div.addEventListener("click", () => {
-
         presencas[id] = !presencas[id];
-
         localStorage.setItem("presencas", JSON.stringify(presencas));
-
         carregar();
       });
 
@@ -180,19 +240,14 @@ async function carregar() {
 }
 
 function atualizarContadores(total) {
-
   const presentes = Object.values(presencas).filter(v => v).length;
-
   document.getElementById("total").textContent = "Total: " + total;
   document.getElementById("presentes").textContent = "Presentes: " + presentes;
 }
 
-// Atualiza lista a cada 30 segundos
 setInterval(carregar, 30000);
 
-// Pesquisa
 document.getElementById("pesquisa").addEventListener("input", function() {
-
   const filtro = this.value.toLowerCase();
   const cards = document.querySelectorAll(".card");
 
@@ -200,7 +255,6 @@ document.getElementById("pesquisa").addEventListener("input", function() {
     const nome = card.querySelector(".nome").textContent.toLowerCase();
     card.style.display = nome.includes(filtro) ? "block" : "none";
   });
-
 });
 
 carregar();
